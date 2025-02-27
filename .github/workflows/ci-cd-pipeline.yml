@@ -22,13 +22,13 @@ jobs:
         dotnet-version: '6.0'  # Ensure to use .NET 6 SDK
 
     - name: Restore dependencies
-      run: dotnet restore  # Restore NuGet packages
+      run: dotnet restore ./TaskManagementAPI/TaskManagementAPI.csproj  # Path to your csproj file
 
     - name: Build the solution
-      run: dotnet build --configuration Release  # Build the project in Release mode
+      run: dotnet build ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release  # Path to your csproj file
 
     - name: Run tests
-      run: dotnet test  # Run the unit tests
+      run: dotnet test ./TaskManagementAPI/TaskManagementAPI.csproj  # Path to your csproj file
 
     - name: Publish the application
-      run: dotnet publish --configuration Release --output ./publish  # Publish to a folder
+      run: dotnet publish ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release --output ./publish  # Publish to a folder
