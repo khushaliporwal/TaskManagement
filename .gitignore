@@ -1,0 +1,33 @@
+# .NET Core build artifacts
+/bin/
+/obj/
+
+# User-specific files
+.idea/
+/.vscode/
+
+# User secrets (if you're using user-specific secrets during development)
+secrets.json
+
+# Windows installer files
+Thumbs.db
+ehthumbs.db
+
+# macOS system files
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+
+# Rider IDE files
+.idea/
+
+# JetBrains Rider files
+.idea/
+
+# JetBrains Rider files
+.idea/
