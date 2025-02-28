@@ -1,34 +1,85 @@
-name: .NET Core CI
+name: .NET Core CI/CD
 
 on:
   push:
     branches:
-      - main  # Trigger CI on push to the main branch
+      - main  # Trigger CI/CD on push to main
   pull_request:
     branches:
-      - main  # Trigger CI on pull requests to the main branch
+      - main  # Trigger CI/CD on pull request to main
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Run the build on the latest Ubuntu environment
+    runs-on: ubuntu-latest  # Use latest Ubuntu environment
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2  # Step to checkout code
+      uses: actions/checkout@v4  # Updated to latest version
 
     - name: Set up .NET SDK
-      uses: actions/setup-dotnet@v2
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '6.0'  # Ensure to use .NET 6 SDK
 
     - name: Restore dependencies
-      run: dotnet restore ./TaskManagementAPI/TaskManagementAPI.csproj  # Path to your csproj file
+      run: dotnet restore ./TaskManagementAPI/TaskManagementAPI.csproj
 
     - name: Build the solution
-      run: dotnet build ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release  # Path to your csproj file
+      run: dotnet build ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release --no-restore
 
     - name: Run tests
-      run: dotnet test ./TaskManagementAPI/TaskManagementAPI.csproj  # Path to your csproj file
+      run: dotnet test ./TaskManagementAPI/TaskManagementAPI.csproj --no-restore --verbosity normal
 
     - name: Publish the application
-      run: dotnet publish ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release --output ./publish  # Publish to a folder
+      run: |
+        mkdir -p ./publish
+        dotnet publish ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release --output ./publish
+        ls -la ./publish  # Debugging step to verify publish folder exists
+
+    - name: Archive artifact
+      uses: actions/upload-artifact@v4  # Updated to latest version
+      with:
+        name: published-app
+        path: ./publish
+
+  deploy:
+    needs: build  # Run deployment only if build succeeds
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4  # Updated to latest version
+
+    - name: Download artifact
+      uses: actions/download-artifact@v4  # Updated to latest version
+      with:
+        name: published-app
+        path: ./publish
+
+    - name: Create Deployment Package
+      run: |
+        cd publish
+        zip -r ../deploy.zip .
+        cd ..
+        ls -lah deploy.zip  # Debugging step
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Upload to S3
+      run: aws s3 cp deploy.zip s3://elasticbeanstalk-${{ secrets.AWS_REGION }}-490004655906/deploy.zip
+
+    - name: Deploy to AWS Elastic Beanstalk
+      uses: einaregilsson/beanstalk-deploy@v21
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        region: ${{ secrets.AWS_REGION }}
+        application_name: "TaskManagementApi"
+        environment_name: "TaskManagementApi-env-2"
+        version_label: "v${{ github.run_number }}"
+        deployment_package: deploy.zip  # ✅ Corrected this parameter
