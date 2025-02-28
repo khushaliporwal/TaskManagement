@@ -58,17 +58,21 @@ jobs:
 
     - name: Install or Update AWS CLI
       run: |
-        if aws --version &> /dev/null; then
-          echo "AWS CLI already installed. Updating..."
-          pip3 install --upgrade --user awscli botocore s3transfer
-        else
-          echo "AWS CLI not found. Installing..."
-          sudo apt update
-          sudo apt install -y python3-pip
-          pip3 install awscli botocore s3transfer --user
-        fi
+        echo "Removing old AWS CLI versions..."
+        rm -rf ~/.local/lib/python*/site-packages/awscli* ~/.local/bin/aws || true
+        rm -rf ~/.local/lib/python*/site-packages/botocore* || true
+        rm -rf ~/.local/lib/python*/site-packages/s3transfer* || true
+
+        echo "Installing AWS CLI..."
+        sudo apt update
+        sudo apt install -y python3-pip
+        pip3 install --no-cache-dir --upgrade --user awscli botocore s3transfer
+
+        echo "Setting up AWS CLI path..."
         echo "export PATH=$HOME/.local/bin:$PATH" >> ~/.bashrc
         source ~/.bashrc
+
+        echo "Verifying AWS CLI version..."
         aws --version
         
     - name: Install Elastic Beanstalk CLI
