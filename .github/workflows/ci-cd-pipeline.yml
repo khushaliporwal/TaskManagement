@@ -56,21 +56,21 @@ jobs:
         name: published-app
         path: ./publish
 
-    - name: Install AWS CLI
+    - name: Install or Update AWS CLI
       run: |
-        if ! command -v aws &> /dev/null; then
+        if aws --version &> /dev/null; then
+          echo "AWS CLI already installed. Updating..."
+          pip3 install --upgrade --user awscli
+        else
           echo "AWS CLI not found. Installing..."
           sudo apt update
           sudo apt install -y python3-pip
-          pip3 install awscli --upgrade --user
-          export PATH=$PATH:$HOME/.local/bin
-        else
-          echo "AWS CLI already installed. Updating..."
-          aws --version
-          sudo /usr/local/aws-cli/v2/current/bin/aws/install --update
+          pip3 install awscli --user
         fi
+        echo "export PATH=$HOME/.local/bin:$PATH" >> ~/.bashrc
+        source ~/.bashrc
         aws --version
-
+        
     - name: Install Elastic Beanstalk CLI
       run: pip install --user awsebcli --upgrade
 
