@@ -82,5 +82,4 @@ jobs:
         application_name: ${{ secrets.EB_APPLICATION_NAME }}
         environment_name: ${{ secrets.EB_ENVIRONMENT_NAME }}
         version_label: "v${{ github.run_number }}"
-        s3_bucket: elasticbeanstalk-${{ secrets.AWS_REGION }}-490004655906
-        s3_key: deploy.zip
+        deployment_package: deploy.zip  # ✅ Corrected this parameter
