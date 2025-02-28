@@ -44,7 +44,10 @@ jobs:
     - name: Install AWS CLI
       run: |
         sudo apt update
-        sudo apt install -y awscli
+        sudo apt install -y python3-pip
+        pip3 install awscli --upgrade --user
+        export PATH=$PATH:$HOME/.local/bin
+        aws --version
 
     - name: Install Elastic Beanstalk CLI
       run: |
