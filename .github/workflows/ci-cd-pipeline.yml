@@ -56,28 +56,6 @@ jobs:
         name: published-app
         path: ./publish
 
-    - name: Install or Update AWS CLI
-      run: |
-        echo "Removing old AWS CLI versions..."
-        rm -rf ~/.local/lib/python*/site-packages/awscli* ~/.local/bin/aws || true
-        rm -rf ~/.local/lib/python*/site-packages/botocore* || true
-        rm -rf ~/.local/lib/python*/site-packages/s3transfer* || true
-
-        echo "Installing AWS CLI..."
-        sudo apt update
-        sudo apt install -y python3-pip
-        pip3 install --no-cache-dir --upgrade --user awscli botocore s3transfer
-
-        echo "Setting up AWS CLI path..."
-        echo "export PATH=$HOME/.local/bin:$PATH" >> ~/.bashrc
-        source ~/.bashrc
-
-        echo "Verifying AWS CLI version..."
-        aws --version
-        
-    - name: Install Elastic Beanstalk CLI
-      run: pip install --user awsebcli --upgrade
-
     - name: Create Deployment Package
       run: |
         cd publish
@@ -85,19 +63,24 @@ jobs:
         cd ..
         ls -lah deploy.zip  # Debugging step
 
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Upload to S3
+      uses: aws-actions/s3-sync@v1
+      with:
+        bucket: elasticbeanstalk-${{ secrets.AWS_REGION }}-490004655906
+        region: ${{ secrets.AWS_REGION }}
+        file: deploy.zip
+        key: deploy.zip
+
     - name: Deploy to AWS Elastic Beanstalk
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-        EB_APPLICATION_NAME: ${{ secrets.EB_APPLICATION_NAME }}
-        EB_ENVIRONMENT_NAME: ${{ secrets.EB_ENVIRONMENT_NAME }}
-      run: |
-        echo "Uploading deploy.zip to S3..."
-        aws s3 cp deploy.zip s3://elasticbeanstalk-${{ secrets.AWS_REGION }}-490004655906/deploy.zip
-
-        echo "Creating new application version in Elastic Beanstalk..."
-        aws elasticbeanstalk create-application-version --application-name "$EB_APPLICATION_NAME" --version-label "v${{ github.run_number }}" --source-bundle S3Bucket="elasticbeanstalk-${{ secrets.AWS_REGION }}-490004655906",S3Key="deploy.zip"
-
-        echo "Deploying new version to Elastic Beanstalk..."
-        aws elasticbeanstalk update-environment --application-name "$EB_APPLICATION_NAME" --environment-name "$EB_ENVIRONMENT_NAME" --version-label "v${{ github.run_number }}"
+      uses: einaregilsson/beanstalk-deploy@v21
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        application_name: ${{ secrets.EB_APPLICATION_NAME }}
