@@ -3,18 +3,18 @@ name: .NET Core CI/CD
 on:
   push:
     branches:
-      - main  # Trigger CI/CD on push to the main branch
+      - main  # Trigger CI/CD on push to main
   pull_request:
     branches:
-      - main  # Trigger CI/CD on pull requests to the main branch
+      - main  # Trigger CI/CD on pull request to main
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Run the build on the latest Ubuntu environment
+    runs-on: ubuntu-latest  # Use latest Ubuntu environment
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2  # Step to checkout code
+      uses: actions/checkout@v2
 
     - name: Set up .NET SDK
       uses: actions/setup-dotnet@v2
@@ -22,31 +22,45 @@ jobs:
         dotnet-version: '6.0'  # Ensure to use .NET 6 SDK
 
     - name: Restore dependencies
-      run: dotnet restore ./TaskManagementAPI/TaskManagementAPI.csproj  # Path to your csproj file
+      run: dotnet restore ./TaskManagementAPI/TaskManagementAPI.csproj
 
     - name: Build the solution
-      run: dotnet build ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release  # Path to your csproj file
+      run: dotnet build ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release --no-restore
 
     - name: Run tests
-      run: dotnet test ./TaskManagementAPI/TaskManagementAPI.csproj  # Path to your csproj file
+      run: dotnet test ./TaskManagementAPI/TaskManagementAPI.csproj --no-restore --verbosity normal
 
     - name: Publish the application
-      run: dotnet publish ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release --output ./publish  # Publish to a folder
+      run: |
+        mkdir -p ./publish
+        dotnet publish ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release --output ./publish
+        ls -la ./publish  # Debugging step to verify publish folder exists
+
+    - name: Archive artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: published-app
+        path: ./publish
 
   deploy:
-    needs: build  # Run deployment only if the build job succeeds
+    needs: build  # Run deployment only if build succeeds
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: published-app
+        path: ./publish
+
     - name: Install AWS CLI
       run: |
-        sudo apt update
-        sudo apt install -y python3-pip
-        pip3 install awscli --upgrade --user
-        export PATH=$PATH:$HOME/.local/bin
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
         aws --version
 
     - name: Install Elastic Beanstalk CLI
@@ -67,6 +81,8 @@ jobs:
         EB_APPLICATION_NAME: ${{ secrets.EB_APPLICATION_NAME }}
         EB_ENVIRONMENT_NAME: ${{ secrets.EB_ENVIRONMENT_NAME }}
       run: |
-        aws elasticbeanstalk create-application-version --application-name "$EB_APPLICATION_NAME" --version-label "v${{ github.run_number }}" --source-bundle S3Bucket="elasticbeanstalk-${{ secrets.AWS_REGION }}-123456789012",S3Key="deploy.zip"
+        aws s3 cp deploy.zip s3://elasticbeanstalk-${{ secrets.AWS_REGION }}-490004655906/deploy.zip
+
+        aws elasticbeanstalk create-application-version --application-name "$EB_APPLICATION_NAME" --version-label "v${{ github.run_number }}" --source-bundle S3Bucket="elasticbeanstalk-${{ secrets.AWS_REGION }}-490004655906",S3Key="deploy.zip"
 
         aws elasticbeanstalk update-environment --application-name "$EB_APPLICATION_NAME" --environment-name "$EB_ENVIRONMENT_NAME" --version-label "v${{ github.run_number }}"
