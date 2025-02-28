@@ -56,12 +56,10 @@ namespace TaskManagementAPI.Controllers
             {
                 return BadRequest(ModelState); // Return the validation errors
             }
-
             if (id != task.Id)
             {
                 return BadRequest();
             }
-
             await _taskRepository.UpdateAsync(task);
             return NoContent();
         }
