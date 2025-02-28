@@ -5,6 +5,8 @@
 # User-specific files
 .idea/
 /.vscode/
+# Ignore Visual Studio folder
+.vs/
 
 # User secrets (if you're using user-specific secrets during development)
 secrets.json
