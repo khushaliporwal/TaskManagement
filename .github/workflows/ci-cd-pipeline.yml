@@ -37,7 +37,7 @@ jobs:
         ls -la ./publish  # Debugging step to verify publish folder exists
 
     - name: Archive artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: published-app
         path: ./publish
