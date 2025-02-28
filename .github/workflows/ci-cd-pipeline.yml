@@ -1,12 +1,12 @@
-name: .NET Core CI
+name: .NET Core CI/CD
 
 on:
   push:
     branches:
-      - main  # Trigger CI on push to the main branch
+      - main  # Trigger CI/CD on push to the main branch
   pull_request:
     branches:
-      - main  # Trigger CI on pull requests to the main branch
+      - main  # Trigger CI/CD on pull requests to the main branch
 
 jobs:
   build:
@@ -32,3 +32,38 @@ jobs:
 
     - name: Publish the application
       run: dotnet publish ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release --output ./publish  # Publish to a folder
+
+  deploy:
+    needs: build  # Run deployment only if the build job succeeds
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install AWS CLI
+      run: |
+        sudo apt update
+        sudo apt install -y awscli
+
+    - name: Install Elastic Beanstalk CLI
+      run: |
+        pip install awsebcli --upgrade
+
+    - name: Create Deployment Package
+      run: |
+        cd publish
+        zip -r ../deploy.zip .
+        cd ..
+
+    - name: Deploy to AWS Elastic Beanstalk
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        EB_APPLICATION_NAME: ${{ secrets.EB_APPLICATION_NAME }}
+        EB_ENVIRONMENT_NAME: ${{ secrets.EB_ENVIRONMENT_NAME }}
+      run: |
+        aws elasticbeanstalk create-application-version --application-name "$EB_APPLICATION_NAME" --version-label "v${{ github.run_number }}" --source-bundle S3Bucket="elasticbeanstalk-${{ secrets.AWS_REGION }}-123456789012",S3Key="deploy.zip"
+
+        aws elasticbeanstalk update-environment --application-name "$EB_APPLICATION_NAME" --environment-name "$EB_ENVIRONMENT_NAME" --version-label "v${{ github.run_number }}"
