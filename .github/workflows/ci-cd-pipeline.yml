@@ -14,10 +14,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4  # Updated to latest version
 
     - name: Set up .NET SDK
-      uses: actions/setup-dotnet@v2
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '6.0'  # Ensure to use .NET 6 SDK
 
@@ -37,7 +37,7 @@ jobs:
         ls -la ./publish  # Debugging step to verify publish folder exists
 
     - name: Archive artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4  # Updated to latest version
       with:
         name: published-app
         path: ./publish
@@ -48,16 +48,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4  # Updated to latest version
 
     - name: Download artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v4  # Updated to latest version
       with:
         name: published-app
         path: ./publish
 
     - name: Install AWS CLI
-       run:|
+      run: |
         if ! command -v aws &> /dev/null; then
           echo "AWS CLI not found. Installing..."
           sudo apt update
@@ -66,19 +66,20 @@ jobs:
           export PATH=$PATH:$HOME/.local/bin
         else
           echo "AWS CLI already installed. Updating..."
+          aws --version
           sudo /usr/local/aws-cli/v2/current/bin/aws/install --update
         fi
         aws --version
 
     - name: Install Elastic Beanstalk CLI
-      run: |
-        pip install awsebcli --upgrade
+      run: pip install --user awsebcli --upgrade
 
     - name: Create Deployment Package
       run: |
         cd publish
         zip -r ../deploy.zip .
         cd ..
+        ls -lah deploy.zip  # Debugging step
 
     - name: Deploy to AWS Elastic Beanstalk
       env:
@@ -88,8 +89,11 @@ jobs:
         EB_APPLICATION_NAME: ${{ secrets.EB_APPLICATION_NAME }}
         EB_ENVIRONMENT_NAME: ${{ secrets.EB_ENVIRONMENT_NAME }}
       run: |
+        echo "Uploading deploy.zip to S3..."
         aws s3 cp deploy.zip s3://elasticbeanstalk-${{ secrets.AWS_REGION }}-490004655906/deploy.zip
 
+        echo "Creating new application version in Elastic Beanstalk..."
         aws elasticbeanstalk create-application-version --application-name "$EB_APPLICATION_NAME" --version-label "v${{ github.run_number }}" --source-bundle S3Bucket="elasticbeanstalk-${{ secrets.AWS_REGION }}-490004655906",S3Key="deploy.zip"
 
+        echo "Deploying new version to Elastic Beanstalk..."
         aws elasticbeanstalk update-environment --application-name "$EB_APPLICATION_NAME" --environment-name "$EB_ENVIRONMENT_NAME" --version-label "v${{ github.run_number }}"
