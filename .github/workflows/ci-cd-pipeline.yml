@@ -14,12 +14,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4  # Updated to latest version
+      uses: actions/checkout@v4  # Checkout repository
 
     - name: Set up .NET SDK
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0'  # Ensure to use .NET 8 SDK
+        dotnet-version: '8.0'  # Use .NET SDK version
 
     - name: Restore dependencies
       run: dotnet restore ./TaskManagementAPI/TaskManagementAPI.csproj
@@ -37,32 +37,19 @@ jobs:
         ls -la ./publish  # Debugging step to verify publish folder exists
 
     - name: Archive artifact
-      uses: actions/upload-artifact@v4  # Updated to latest version
+      uses: actions/upload-artifact@v4  # Upload build artifacts
       with:
         name: published-app
         path: ./publish
 
   deploy:
     runs-on: ubuntu-latest  # Use latest Ubuntu environment
-    needs: build  # This ensures deploy runs after the build job is successful
-    environment: production  # Can be used for environment-specific notifications
+    needs: build  # Run deploy after successful build job
+    environment: production  # Notify the environment
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install AWS CLI
-      run: |
-        # Uninstall existing AWS CLI version (if installed via AWS CLI installer)
-        sudo /usr/local/bin/aws --version || echo "AWS CLI not installed, skipping uninstall"
-        sudo rm -rf /usr/local/aws-cli
-        sudo rm -rf /usr/local/bin/aws
-    
-        # Install the latest AWS CLI
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip awscliv2.zip
-        sudo ./aws/install
-
+      uses: actions/checkout@v4  # Checkout repository
 
     - name: Configure AWS credentials
       run: |
@@ -76,13 +63,23 @@ jobs:
         name: published-app
         path: ./publish
 
-    - name: Deploy to AWS Elastic Beanstalk
+    - name: Create application version in Elastic Beanstalk
       run: |
-        # Initialize the Elastic Beanstalk app
-        eb init -p dotnet-core --region ${{ secrets.AWS_REGION }} --no-verify-ssl
+        # Package the app into a ZIP file for Elastic Beanstalk
+        cd ./publish
+        zip -r ../app.zip .
+        cd ..
 
-        # Set the environment for deployment
-        eb use your-environment-name
+        # Upload the ZIP file to an S3 bucket (using the pre-defined S3 bucket variable)
+        aws s3 cp app.zip s3://${{ secrets.AWS_S3_BUCKET_NAME }}/app.zip
 
-        # Deploy the app
-        eb deploy
+        # Create a new version of the application in Elastic Beanstalk
+        aws elasticbeanstalk create-application-version --application-name ${{ secrets.AWS_APPLICATION_NAME }} \
+          --version-label ${{ github.sha }} \
+          --source-bundle S3Bucket="${{ secrets.AWS_S3_BUCKET_NAME }}",S3Key="app.zip"
+
+    - name: Deploy application to Elastic Beanstalk
+      run: |
+        # Update the environment with the new application version
+        aws elasticbeanstalk update-environment --environment-name ${{ secrets.AWS_ENVIRONMENT_NAME }} \
+          --version-label ${{ github.sha }}
