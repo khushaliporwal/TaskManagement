@@ -44,7 +44,7 @@ namespace TaskManagementAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks()
         {
-            var tasks = await _taskRepository.GetAllAsync();
+          //  var tasks = await _taskRepository.GetAllAsync();
 
             return Ok("get All Tasks");
         }
