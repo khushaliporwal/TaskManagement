@@ -1,26 +1,20 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
-namespace TaskManagementAPI.Models
+public class TaskItem
 {
-    public class TaskItem
-    {
-        [Key]
-        public string Id { get; set; }
+    [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string Id { get; set; }  // MongoDB _id field
 
-        [Required(ErrorMessage = "Title is required.")]
-        [StringLength(100, ErrorMessage = "Title can't be longer than 100 characters.")]
-        public string Title { get; set; }
+    public string Title { get; set; }
+    public string Description { get; set; }
+    public bool IsCompleted { get; set; }
 
-        [StringLength(500, ErrorMessage = "Description can't be longer than 500 characters.")]
-        public string Description { get; set; }
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime CreatedAt { get; set; }
 
-        [Required(ErrorMessage = "Priority is required.")]
-        [Range(1, 5, ErrorMessage = "Priority must be between 1 and 5.")]
-        public int Priority { get; set; }
-
-        [Required(ErrorMessage = "Due date is required.")]
-        public DateTime DueDate { get; set; }
-
-        public bool IsCompleted { get; set; }
-    }
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime? CompletedAt { get; set; } // Nullable for tasks not completed yet
 }
