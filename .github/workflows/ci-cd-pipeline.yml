@@ -36,50 +36,39 @@ jobs:
         dotnet publish ./TaskManagementAPI/TaskManagementAPI.csproj --configuration Release --output ./publish
         ls -la ./publish  # Debugging step to verify publish folder exists
 
-    - name: Archive artifact
-      uses: actions/upload-artifact@v4  # Upload build artifacts
+    - name: Create deployment package (ZIP)
+      run: |
+        cd ./publish
+        zip -r ../app-deployment.zip .
+        cd ..
+
+    - name: Upload deployment package
+      uses: actions/upload-artifact@v4
       with:
-        name: published-app
-        path: ./publish
+        name: deployment-package
+        path: app-deployment.zip
 
   deploy:
     runs-on: ubuntu-latest  # Use latest Ubuntu environment
     needs: build  # Run deploy after successful build job
-    environment: production  # Notify the environment
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4  # Checkout repository
 
-    - name: Configure AWS credentials
-      run: |
-        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws configure set region ${{ secrets.AWS_REGION }}
-
-    - name: Download artifact
+    - name: Download deployment package
       uses: actions/download-artifact@v4
       with:
-        name: published-app
-        path: ./publish
-
-    - name: Create application version in Elastic Beanstalk
-      run: |
-        # Package the app into a ZIP file for Elastic Beanstalk
-        cd ./publish
-        zip -r ../app.zip .
-        cd ..
-
-        # Upload the ZIP file to an S3 bucket (using the pre-defined S3 bucket variable)
-        aws s3 cp app.zip s3://${{ secrets.AWS_S3_BUCKET_NAME }}/app.zip
-
-        # Create a new version of the application in Elastic Beanstalk
-        aws elasticbeanstalk create-application-version --application-name ${{ secrets.AWS_APPLICATION_NAME }} \
-          --version-label ${{ github.sha }} \
-          --source-bundle S3Bucket="${{ secrets.AWS_S3_BUCKET_NAME }}",S3Key="app.zip"
+        name: deployment-package
+        path: ./
 
     - name: Deploy application to Elastic Beanstalk
-      run: |
-        # Update the environment with the new application version
-        aws elasticbeanstalk update-environment --environment-name ${{ secrets.AWS_ENVIRONMENT_NAME }} \
-          --version-label ${{ github.sha }}
+      uses: einaregilsson/beanstalk-deploy@v21
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        application_name: ${{ secrets.EB_APP_NAME }}
+        environment_name: ${{ secrets.EB_ENV_NAME }}
+        region: ${{ secrets.AWS_REGION }}
+        version_label: "deploy-${{ github.sha }}"
+        deployment_package: "app-deployment.zip"
