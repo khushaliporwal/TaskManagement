@@ -45,7 +45,8 @@ namespace TaskManagementAPI.Controllers
         public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks()
         {
             var tasks = await _taskRepository.GetAllAsync();
-            return Ok(tasks);
+
+            return Ok("get All Tasks");
         }
 
         // PUT api/tasks/{id}
