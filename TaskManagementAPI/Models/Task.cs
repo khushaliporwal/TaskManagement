@@ -6,7 +6,7 @@ public class TaskItem
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
-    public string Id { get; set; }  // MongoDB _id field
+    public string? Id { get; set; }  // MongoDB _id field
 
     public string Title { get; set; }
     public string Description { get; set; }

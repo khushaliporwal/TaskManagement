@@ -19,11 +19,11 @@ namespace TaskManagementAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<TaskItem>> CreateTask([FromBody] TaskItem task)
         {
+            ModelState.Remove("Id"); // Remove Id validation if present
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState); // Return the validation errors
+                return BadRequest(ModelState);
             }
-
             var createdTask = await _taskRepository.CreateAsync(task);
             return CreatedAtAction(nameof(GetTaskById), new { id = createdTask.Id }, createdTask);
         }
@@ -44,9 +44,9 @@ namespace TaskManagementAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks()
         {
-          //  var tasks = await _taskRepository.GetAllAsync();
+            var tasks = await _taskRepository.GetAllAsync();
 
-            return Ok("get All Tasks");
+            return Ok(tasks);
         }
 
         // PUT api/tasks/{id}
