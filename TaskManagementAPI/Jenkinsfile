@@ -1,43 +1,39 @@
 pipeline {
-    agent any  // Use any agent (ensure it’s Windows-based)
-    
+    agent any  // Use any available agent
+
     environment {
-        DOTNET_CLI_HOME = 'C:\\Temp'  // This prevents permission issues in Windows
+        DOTNET_CLI_HOME = 'C:\\Temp'  // Prevents permission issues in Windows
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Checkout the code from your Git repository
-                git 'https://github.com/khushaliporwal/TaskManagement'
+                git branch: 'main', url: 'https://github.com/khushaliporwal/TaskManagement'
             }
         }
 
         stage('Restore Dependencies') {
             steps {
-                // Restore NuGet dependencies using Windows batch command
-                bat 'dotnet restore'
+                bat 'dotnet restore TaskManagementAPI/TaskManagementAPI.sln'
             }
         }
 
         stage('Build') {
             steps {
-                // Build the .NET project using Windows batch command
-                bat 'dotnet build --configuration Release'
+                bat 'dotnet build TaskManagementAPI/TaskManagementAPI.sln --configuration Release'
             }
         }
 
         stage('Test') {
             steps {
-                // Run unit tests using Windows batch command
-                bat 'dotnet test --configuration Release'
+                bat 'dotnet test TaskManagementAPI/TaskManagementAPI.sln --configuration Release'
             }
         }
 
         stage('Publish') {
             steps {
-                // Publish the .NET project to the output directory
-                bat 'dotnet publish --configuration Release --output ./publish'
+                bat 'rmdir /S /Q publish || echo "No existing publish directory"'
+                bat 'dotnet publish TaskManagementAPI/TaskManagementAPI.sln --configuration Release --output ./publish'
             }
         }
     }
