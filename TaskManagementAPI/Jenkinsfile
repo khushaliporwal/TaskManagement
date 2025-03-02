@@ -1,8 +1,8 @@
 pipeline {
-    agent any  // Use any available agent
+    agent any
 
     environment {
-        DOTNET_CLI_HOME = 'C:\\Temp'  // Prevents permission issues in Windows
+        DOTNET_CLI_HOME = 'C:\\Temp'
     }
 
     stages {
@@ -32,8 +32,7 @@ pipeline {
 
         stage('Publish') {
             steps {
-                bat 'rmdir /S /Q publish || echo "No existing publish directory"'
-                bat 'dotnet publish TaskManagementAPI/TaskManagementAPI.sln --configuration Release --output ./publish'
+                bat 'dotnet publish TaskManagementAPI/TaskManagementAPI.sln --configuration Release --output TaskManagementAPI/publish || exit /b'
             }
         }
     }
@@ -41,11 +40,11 @@ pipeline {
     post {
 
         success {
-            echo 'Build succeeded!'
+            echo ' Build succeeded!'
         }
 
         failure {
-            echo 'Build failed!'
+            echo ' Build failed! Check logs for details.'
         }
     }
 }
