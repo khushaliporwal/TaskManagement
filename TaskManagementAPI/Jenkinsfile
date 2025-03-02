@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOTNET_CLI_HOME = 'C:\\Temp'
-        AWS_REGION = 'us-east-1'  // Change to your AWS region
+        AWS_REGION = 'ap-south-1'  // Change to your AWS region
         EB_APPLICATION = 'TaskMgmt'  // Elastic Beanstalk App Name
         EB_ENVIRONMENT = 'TaskMgmt-env'  // Elastic Beanstalk Environment Name
         S3_BUCKET = 'elasticbeanstalk-ap-south-1-490004655906'  // S3 Bucket for deployments
