@@ -3,6 +3,11 @@ pipeline {
 
     environment {
         DOTNET_CLI_HOME = 'C:\\Temp'
+        AWS_REGION = 'us-east-1'  // Change to your AWS region
+        EB_APPLICATION = 'TaskMgmt'  // Elastic Beanstalk App Name
+        EB_ENVIRONMENT = 'TaskMgmt-env'  // Elastic Beanstalk Environment Name
+        S3_BUCKET = 'elasticbeanstalk-ap-south-1-490004655906'  // S3 Bucket for deployments
+        ARTIFACT_NAME = "deploy-${env.BUILD_NUMBER}.zip"
     }
 
     stages {
@@ -35,16 +40,49 @@ pipeline {
                 bat 'dotnet publish TaskManagementAPI/TaskManagementAPI.sln --configuration Release --output TaskManagementAPI/publish || exit /b'
             }
         }
+
+        stage('Package for Deployment') {
+            steps {
+                script {
+                    bat '''
+                    mkdir deploy
+                    xcopy /E /I /Y TaskManagementAPI\\publish deploy
+                    cd deploy
+                    "C:\\Program Files\\7-Zip\\7z.exe" a -tzip ..\\${ARTIFACT_NAME} *
+                    '''
+                }
+            }
+        }
+
+        stage('Upload to S3') {
+            steps {
+                script {
+                    bat '''
+                    aws s3 cp ${ARTIFACT_NAME} s3://%S3_BUCKET%/${ARTIFACT_NAME}
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Elastic Beanstalk') {
+            steps {
+                script {
+                    bat '''
+                    aws elasticbeanstalk create-application-version --application-name %EB_APPLICATION% --version-label "v-%BUILD_NUMBER%" --source-bundle S3Bucket="%S3_BUCKET%",S3Key="${ARTIFACT_NAME}"
+                    aws elasticbeanstalk update-environment --environment-name %EB_ENVIRONMENT% --version-label "v-%BUILD_NUMBER%"
+                    '''
+                }
+            }
+        }
     }
 
     post {
-
         success {
-            echo ' Build succeeded!'
+            echo ' Build & Deployment succeeded!'
         }
 
         failure {
-            echo ' Build failed! Check logs for details.'
+            echo ' Build or Deployment failed! Check logs for details.'
         }
     }
 }
