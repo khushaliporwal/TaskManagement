@@ -7,7 +7,7 @@ pipeline {
         EB_APPLICATION = 'TaskMgmt'  // Elastic Beanstalk App Name
         EB_ENVIRONMENT = 'TaskMgmt-env'  // Elastic Beanstalk Environment Name
         S3_BUCKET = 'elasticbeanstalk-ap-south-1-490004655906'  // S3 Bucket for deployments
-        ARTIFACT_NAME = "deploy-${env.BUILD_NUMBER}.zip"
+        ARTIFACT_NAME = "TaskManagementAPI.zip"
     }
 
     stages {
