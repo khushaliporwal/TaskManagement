@@ -1,0 +1,55 @@
+pipeline {
+    agent any  // Use any agent (ensure it’s Windows-based)
+    
+    environment {
+        DOTNET_CLI_HOME = 'C:\\Temp'  // This prevents permission issues in Windows
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout the code from your Git repository
+                git 'https://github.com/khushaliporwal/TaskManagement'
+            }
+        }
+
+        stage('Restore Dependencies') {
+            steps {
+                // Restore NuGet dependencies using Windows batch command
+                bat 'dotnet restore'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                // Build the .NET project using Windows batch command
+                bat 'dotnet build --configuration Release'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                // Run unit tests using Windows batch command
+                bat 'dotnet test --configuration Release'
+            }
+        }
+
+        stage('Publish') {
+            steps {
+                // Publish the .NET project to the output directory
+                bat 'dotnet publish --configuration Release --output ./publish'
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'Build succeeded!'
+        }
+
+        failure {
+            echo 'Build failed!'
+        }
+    }
+}
