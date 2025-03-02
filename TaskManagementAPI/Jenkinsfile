@@ -3,10 +3,10 @@ pipeline {
 
     environment {
         DOTNET_CLI_HOME = 'C:\\Temp'
-        AWS_REGION = 'ap-south-1'  // Change to your AWS region
-        EB_APPLICATION = 'TaskMgmt'  // Elastic Beanstalk App Name
-        EB_ENVIRONMENT = 'TaskMgmt-env'  // Elastic Beanstalk Environment Name
-        S3_BUCKET = 'elasticbeanstalk-ap-south-1-490004655906'  // S3 Bucket for deployments
+        AWS_REGION = 'ap-south-1'  
+        EB_APPLICATION = 'TaskMgmt'  
+        EB_ENVIRONMENT = 'TaskMgmt-env'  
+        S3_BUCKET = 'elasticbeanstalk-ap-south-1-490004655906'  
         ARTIFACT_NAME = "TaskManagementAPI.zip"
     }
 
@@ -36,11 +36,11 @@ pipeline {
         }
 
         stage('Publish') {
-        steps {
-            bat '''
-            rmdir /S /Q TaskManagementAPI\\publish || echo "No existing publish directory"
-            dotnet publish TaskManagementAPI/TaskManagementAPI.sln --configuration Release --output TaskManagementAPI/publish
-            '''
+            steps {
+                bat '''
+                rmdir /S /Q TaskManagementAPI\\publish || echo "No existing publish directory"
+                dotnet publish TaskManagementAPI/TaskManagementAPI.sln --configuration Release --output TaskManagementAPI/publish
+                '''
             }
         }
 
@@ -48,10 +48,10 @@ pipeline {
             steps {
                 script {
                     bat '''
-                    mkdir deploy
+                    if not exist deploy mkdir deploy
                     xcopy /E /I /Y TaskManagementAPI\\publish deploy
                     cd deploy
-                    "C:\\Program Files\\7-Zip\\7z.exe" a -tzip ..\\${ARTIFACT_NAME} *
+                    "C:\\Program Files\\7-Zip\\7z.exe" a -tzip ..\\%ARTIFACT_NAME% *
                     '''
                 }
             }
@@ -61,7 +61,7 @@ pipeline {
             steps {
                 script {
                     bat '''
-                    aws s3 cp ${ARTIFACT_NAME} s3://%S3_BUCKET%/${ARTIFACT_NAME}
+                    aws s3 cp %ARTIFACT_NAME% s3://%S3_BUCKET%/%ARTIFACT_NAME%
                     '''
                 }
             }
@@ -71,7 +71,7 @@ pipeline {
             steps {
                 script {
                     bat '''
-                    aws elasticbeanstalk create-application-version --application-name %EB_APPLICATION% --version-label "v-%BUILD_NUMBER%" --source-bundle S3Bucket="%S3_BUCKET%",S3Key="${ARTIFACT_NAME}"
+                    aws elasticbeanstalk create-application-version --application-name %EB_APPLICATION% --version-label "v-%BUILD_NUMBER%" --source-bundle S3Bucket="%S3_BUCKET%",S3Key="%ARTIFACT_NAME%"
                     aws elasticbeanstalk update-environment --environment-name %EB_ENVIRONMENT% --version-label "v-%BUILD_NUMBER%"
                     '''
                 }
@@ -81,11 +81,11 @@ pipeline {
 
     post {
         success {
-            echo ' Build & Deployment succeeded!'
+            echo 'Build & Deployment succeeded!'
         }
 
         failure {
-            echo ' Build or Deployment failed! Check logs for details.'
+            echo 'Build or Deployment failed! Check logs for details.'
         }
     }
 }
