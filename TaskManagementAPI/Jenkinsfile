@@ -36,8 +36,11 @@ pipeline {
         }
 
         stage('Publish') {
-            steps {
-                bat 'dotnet publish TaskManagementAPI/TaskManagementAPI.sln --configuration Release --output TaskManagementAPI/publish || exit /b'
+        steps {
+            bat '''
+            rmdir /S /Q TaskManagementAPI\\publish || echo "No existing publish directory"
+            dotnet publish TaskManagementAPI/TaskManagementAPI.sln --configuration Release --output TaskManagementAPI/publish
+            '''
             }
         }
 
